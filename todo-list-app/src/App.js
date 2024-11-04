@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import MissionForm from './components/MissionForm';
 import MissionList from './components/MissionList';
+const categoryDependencies = { 
+  "Crianza": "Tameos", 
+  "Construccion": "Farmeos", 
+  "Bosses": "Artefacto" };
 
 function App() {
   const [missions, setMissions] = useState([]);
@@ -61,10 +65,11 @@ function App() {
     const allDependenciesCompleted = missionToComplete.dependencies.every(depId =>
       missions.find(m => m.id === depId)?.isCompleted
     );
-
-    if (!allDependenciesCompleted) {
-      if (!window.confirm("Estás intentando completar una misión sin haber cumplido los requisitos previos. ¿Quieres completarla de todos modos?")) {
-        return;
+    if (!missionToComplete.isCompleted) {
+      if (!allDependenciesCompleted) {
+        if (!window.confirm("Estás intentando completar una misión sin haber cumplido los requisitos previos. ¿Quieres completarla de todos modos?")) {
+          return;
+        }
       }
     }
 
@@ -92,16 +97,40 @@ function App() {
     setCurrentMission({ ...missions[index], index });
   };
 
-  const updateMission = (newMissionText, newCategory, newMap, newPriority, newNotes) => {
+  const updateMission = (newMissionText, newCategory, newMap, newNotes) => {
+    let dependencies = [];
+    let priority;
+
+    if (newCategory === "Tameos" || newCategory === "Farmeos") {
+      priority = "Alta";
+    } else if (newCategory === "Artefacto" || newCategory === "Exploracion") {
+      priority = "Media";
+    } else if (newCategory === "Crianza" || newCategory === "Construccion" || newCategory === "Bosses") {
+      priority = "Baja";
+    }
+
+    const requiredCategory = categoryDependencies[newCategory];
+    if (requiredCategory) { 
+      const missionsInRequiredCategory = missions.filter(m => m.category === requiredCategory);
+       if (missionsInRequiredCategory.length === 0) {
+        alert(`Debe existir al menos una misión de '${requiredCategory}' antes de cambiar la categoría a '${newCategory}'.`); 
+        return;
+      } else { 
+      dependencies = missionsInRequiredCategory.map(m => m.id); 
+      } 
+    }
+
     const newMissions = [...missions];
     newMissions[currentMission.index] = {
       ...newMissions[currentMission.index],
       text: newMissionText,
       category: newCategory,
       map: newMap,
-      priority: newPriority,
-      notes: newNotes
+      priority: priority,
+      notes: newNotes,
+      dependencies: dependencies
     };
+
     setMissions(newMissions);
     setEditing(false);
     setCurrentMission({});
