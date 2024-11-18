@@ -1,17 +1,24 @@
-import React, { useState } from 'react';  // Importar React y el Hook useState
+import React, { useState } from 'react';  
+import { Mission } from '../App';
+interface MissionFormProps {
+  addMission: (mission: Omit<Mission, 'id' | 'dependencies' | 'priority' | 'isCompleted'>) => void;
+}
 
-function MissionForm({ addMission }) {
-  const [value, setValue] = useState('');  // Inicializar estado value con una cadena vacía
-  const [category, setCategory] = useState('Tameos');
-  const [map, setMap] = useState('General');
-  const [notes, setNotes] = useState('');
+const MissionForm: React.FC<MissionFormProps> = ({ addMission }) =>{
+  const [value, setValue] = useState<string>('');  
+  const [category, setCategory] = useState<string>('Tameos');
+  const [map, setMap] = useState<string>('General');
+  const [notes, setNotes] = useState<string>('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();  // Evitar el comportamiento por defecto del formulario (recargar la página)
-    if (!value) return;  // Evitar añadir una misión vacía
-    addMission({ text: value, category, map, notes });  // Llamar a la función addMission pasada como prop para añadir la nueva misión
-    setValue('');  // Restablecer el valor del campo de entrada
-    setNotes('');
+    if (value.trim() === '') {
+      alert('La descripción de la misión no puede estar vacía.'); 
+      return;
+    }
+    addMission({ value, category, map, notes });  // Llamar a la función addMission pasada como prop para añadir la nueva misión
+    setValue(''); // Limpiar el campo de texto
+    setNotes(''); // Limpiar el campo de notas
   };
 
   return (
@@ -21,6 +28,7 @@ function MissionForm({ addMission }) {
         value={value}
         onChange={(e) => setValue(e.target.value)} 
         placeholder="Añadir nueva misión"
+        required
       />
       <select value={category} onChange={(e) => setCategory(e.target.value)}>
         <option value="Tameos">Tameos</option>

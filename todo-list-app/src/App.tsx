@@ -1,30 +1,52 @@
 import React, { useState } from 'react';
 import MissionForm from './components/MissionForm';
 import MissionList from './components/MissionList';
-const categoryDependencies = { 
+
+export interface Mission { 
+  id: number; 
+  value: string; 
+  category: string;
+  map: string;
+  notes: string; 
+  dependencies: number[]; 
+  priority: Priority;
+  isCompleted: boolean; 
+}
+enum Priority {
+  BAJA = "Baja", 
+  MEDIA = "Media", 
+  ALTA = "Alta" 
+}
+const categoryDependencies: Record<string, string> = { 
   "Crianza": "Tameos", 
   "Construccion": "Farmeos", 
-  "Bosses": "Artefacto" };
+  "Bosses": "Artefacto" 
+};
+const priorityMap: Record<string, Priority> = { 
+  Tameos: Priority.ALTA, 
+  Farmeos: Priority.ALTA, 
+  Artefacto: Priority.MEDIA, 
+  Exploracion: Priority.MEDIA, 
+  Crianza: Priority.BAJA, 
+  Construccion: Priority.BAJA, 
+  Bosses: Priority.BAJA 
+};
 
 function App() {
-  const [missions, setMissions] = useState([]);
-  const [editing, setEditing] = useState(false);
-  const [currentMission, setCurrentMission] = useState({});
-  const [newCategory, setNewCategory] = useState(currentMission.category);
+  const [missions, setMissions] = useState<Mission[]>([]);
+  const [editing, setEditing] = useState<boolean>(false);
+  const [currentMission, setCurrentMission] = useState<Partial<Mission>&{index?: number}>({});
+  const [newCategory, setNewCategory] = useState<string | undefined>(currentMission.category);
 
-
-  const addMission = (mission) => {
-    let dependencies = [];
-    let priority;
-
-    if (mission.category === "Tameos" || mission.category === "Farmeos") { 
-      priority = "Alta"; 
-    } else if (mission.category === "Artefacto" || mission.category === "Exploracion") {
-      priority = "Media"; 
-    } else if (mission.category === "Crianza" || mission.category === "Construccion" || mission.category === "Bosses") { 
-      priority = "Baja"; 
-    }
+  const addMission = (mission: Omit<Mission, 'id' | 'dependencies' | 'priority' | 'isCompleted'>) => {
     
+    if (!mission.value || mission.value.trim() === "") {
+      alert("La misión no puede estar vacía.");
+      return;
+    }
+
+    let dependencies: number[] = [];
+    let priority: Priority = priorityMap[mission.category] || Priority.BAJA;;
     if (mission.category === "Crianza") {
       const tameoMissions = missions.filter(m => m.category === "Tameos" && !m.isCompleted);
       if (tameoMissions.length === 0) {
@@ -34,7 +56,6 @@ function App() {
         dependencies = tameoMissions.map(m => m.id);
       }
     }
-
     if (mission.category === "Construccion") {
       const farmeoMissions = missions.filter(m => m.category === "Farmeos" && !m.isCompleted);
       if (farmeoMissions.length === 0) {
@@ -44,7 +65,6 @@ function App() {
         dependencies = farmeoMissions.map(m => m.id);
       }
     }
-
     if (mission.category === "Bosses") {
       const artefactoMissions = missions.filter(m => m.category === "Artefacto" && !m.isCompleted);
       if (artefactoMissions.length === 0) {
@@ -54,12 +74,18 @@ function App() {
         dependencies = artefactoMissions.map(m => m.id);
       }
     }
-
-    const newMissions = [...missions, { ...mission, id: Date.now(), dependencies, priority, isCompleted: false }];
-    setMissions(newMissions);
+    const newMission: Mission = { 
+      ...mission, 
+      id: Date.now(), 
+      dependencies, 
+      priority, 
+      isCompleted: false 
+    };
+    setMissions([...missions, newMission]);
+    
   };
 
-  const completeMission = (index) => {
+  const completeMission = (index: number) => {
     const missionToComplete = missions[index];
 
     const allDependenciesCompleted = missionToComplete.dependencies.every(depId =>
@@ -72,13 +98,12 @@ function App() {
         }
       }
     }
-
     const newMissions = [...missions];
     newMissions[index].isCompleted = !newMissions[index].isCompleted;
     setMissions(newMissions);
   };
 
-  const deleteMission = (index) => {
+  const deleteMission = (index:number) => {
     const missionToDelete = missions[index];
 
     const isDependencyForOthers = missions.some(m => m.dependencies.includes(missionToDelete.id));
@@ -87,27 +112,18 @@ function App() {
         return;
       }
     }
-
     const newMissions = missions.filter((_, i) => i !== index);
     setMissions(newMissions);
   };
 
-  const editMission = (index) => {
+  const editMission = (index:number) => {
     setEditing(true);
     setCurrentMission({ ...missions[index], index });
   };
 
-  const updateMission = (newMissionText, newCategory, newMap, newNotes) => {
-    let dependencies = [];
-    let priority;
-
-    if (newCategory === "Tameos" || newCategory === "Farmeos") {
-      priority = "Alta";
-    } else if (newCategory === "Artefacto" || newCategory === "Exploracion") {
-      priority = "Media";
-    } else if (newCategory === "Crianza" || newCategory === "Construccion" || newCategory === "Bosses") {
-      priority = "Baja";
-    }
+  const updateMission = (newMissionText: string, newCategory: string, newMap: string, newNotes: string) => {
+    let dependencies: number[] = [];
+    let priority: Priority = priorityMap[newCategory] || Priority.BAJA;
 
     const requiredCategory = categoryDependencies[newCategory];
     if (requiredCategory) { 
@@ -121,9 +137,9 @@ function App() {
     }
 
     const newMissions = [...missions];
-    newMissions[currentMission.index] = {
-      ...newMissions[currentMission.index],
-      text: newMissionText,
+    newMissions[currentMission.index!] = {
+      ...newMissions[currentMission.index!],
+      value: newMissionText,
       category: newCategory,
       map: newMap,
       priority: priority,
@@ -150,8 +166,8 @@ function App() {
   <div>
     <input 
       type="text" 
-      value={currentMission.text}
-      onChange={(e) => setCurrentMission({ ...currentMission, text: e.target.value })}
+      value={currentMission.value}
+      onChange={(e) => setCurrentMission({ ...currentMission, value: e.target.value })}
     />
     <select //categoria
       value={currentMission.category}
@@ -159,8 +175,6 @@ function App() {
         const selectedCategory = e.target.value;
         const currentCategory = currentMission.category;
         let affectedCategory;
-
-        // Verificar si la categoría actual es una de las que afectan a otras
         if (currentCategory === "Tameos" || currentCategory === "Farmeos" || currentCategory === "Artefacto") {
           if (currentCategory === "Tameos") {
             affectedCategory = "Crianza";
@@ -169,7 +183,6 @@ function App() {
           } else if (currentCategory === "Artefacto") {
             affectedCategory = "Bosses";
           }
-
           if (selectedCategory !== currentCategory) {
             if (window.confirm(`¿Estás seguro de cambiar la categoría de "${currentCategory}" a "${selectedCategory}"? Esto puede afectar a la categoría dependiente "${affectedCategory}".`)) {
               setCurrentMission({ ...currentMission, category: selectedCategory });
@@ -219,7 +232,12 @@ function App() {
       <strong>Prioridad Asignada:</strong> 
       <input type="text" value={currentMission.priority} readOnly /> 
     </div>
-    <button onClick={() => updateMission(currentMission.text, newCategory, currentMission.map, currentMission.priority, currentMission.notes)}>Actualizar</button>
+    <button onClick={() => updateMission(
+      currentMission.value as string,
+      newCategory as string, 
+      currentMission.map as string, 
+      currentMission.notes as string)
+    }>Actualizar</button>
   </div>
 )}
 
