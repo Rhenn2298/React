@@ -21,3 +21,25 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+.env
+
+# Ignorar cualquier node_modules en cualquier ubicación
+**/node_modules
+
+# Ignorar build y dist
+**/dist
+**/build
+
+# Ignorar entornos
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Mac system files
+.DS_Store
